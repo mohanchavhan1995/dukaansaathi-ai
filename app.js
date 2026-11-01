@@ -22,11 +22,23 @@ $("ledgerList").className="list"+(l.length?"":" empty");$("ledgerList").innerHTM
 $("stockList").className="list"+(s.length?"":" empty");$("stockList").innerHTML=s.length?s.map(x=>`<div class="item"><div><strong>${esc(x.name)}</strong><small>${tr("qty")}: ${x.qty} · ${tr("min")}: ${x.min} ${x.qty<=x.min? " · ⚠ "+tr("low"):""}</small></div><button class="warn" data-stock="${x.id}">${tr("remove")}</button></div>`).join(""):tr("empty");
 $("accountList").className="list"+(e.length?"":" empty");$("accountList").innerHTML=e.length?e.slice(0,30).map(x=>`<div class="item"><div><strong>${x.type==="sale"?tr("sale"):tr("expenseOpt")} · ${money(x.amount)}</strong><small>${esc(x.note||"—")} · ${new Date(x.date).toLocaleDateString()}</small></div><button class="warn" data-entry="${x.id}">${tr("remove")}</button></div>`).join(""):tr("empty");
 }
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
 document.addEventListener("click",e=>{if(e.target.dataset.paid){save("ledger",read("ledger").filter(x=>x.id!==+e.target.dataset.paid));render()}if(e.target.dataset.stock){save("stock",read("stock").filter(x=>x.id!==+e.target.dataset.stock));render()}if(e.target.dataset.entry){save("entries",read("entries").filter(x=>x.id!==+e.target.dataset.entry));render()}});
 $("makeAd").onclick=()=>{let shop=$("shopName").value.trim()||"आपले दुकान",offer=$("offer").value.trim()||"नवीन ऑफर्स";let copy=lang==="en"?`Good news from ${shop}! ${offer}. ${tr("generated")}`:lang==="hi"?`${shop} की ओर से खुशखबरी! ${offer}। ${tr("generated")}`:`${shop} कडून खास ऑफर! ${offer}. ${tr("generated")}`;$("adOutput").value=copy};
 $("copyAd").onclick=async()=>{if(!$("adOutput").value)return;try{await navigator.clipboard.writeText($("adOutput").value);alert(tr("copied"))}catch{ $("adOutput").select();document.execCommand("copy");alert(tr("copied"))}};
 $("exportData").onclick=()=>{let rows=[["type","name","amount","quantity","minimum","date","note"]];read("ledger").forEach(x=>rows.push(["credit",x.name,x.amount,"","","",""]));read("stock").forEach(x=>rows.push(["stock",x.name,"",x.qty,x.min,"",""]));read("entries").forEach(x=>rows.push([x.type,"",x.amount,"","",x.date,x.note]));let csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"}));a.download="dukaansaathi-data.csv";a.click();URL.revokeObjectURL(a.href)};
 $("clearData").onclick=()=>{if(confirm(tr("confirm"))){Object.values(keys).forEach(k=>localStorage.removeItem(k));render()}};
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
 applyLang();
