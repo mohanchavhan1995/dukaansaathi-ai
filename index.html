@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#123c32"><meta name="description" content="DukaanSaathi AI - Smart manager for your shop">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<title>DukaanSaathi AI</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="brand"><div class="logo">DS</div><div><h1>DukaanSaathi AI</h1><small id="tagline">तुमच्या दुकानाचा स्मार्ट मॅनेजर</small></div></div>
+<select id="language" aria-label="Language"><option value="mr">मराठी</option><option value="hi">हिंदी</option><option value="en">English</option></select></header>
+<main>
+<section class="welcome"><div><p class="eyebrow" id="welcomeEyebrow">तुमच्या व्यवसायाचे स्वागत आहे</p><h2 id="welcomeTitle">आजचा व्यवसाय एका नजरेत</h2><p id="welcomeText">हिशोब, उधारी आणि स्टॉक एकाच ठिकाणी सांभाळा.</p></div><div class="date" id="today"></div></section>
+<section class="stats">
+ <article><span id="salesLabel">आजची विक्री</span><strong id="salesTotal">₹0</strong></article>
+ <article><span id="expenseLabel">आजचा खर्च</span><strong id="expenseTotal">₹0</strong></article>
+ <article><span id="profitLabel">आजचा नफा*</span><strong id="profitTotal">₹0</strong></article>
+ <article><span id="creditLabel">एकूण उधारी</span><strong id="creditTotal">₹0</strong></article>
+</section>
+<nav class="tabs">
+<button class="tab active" data-tab="ledger" id="tabLedger">उधारी</button><button class="tab" data-tab="stock" id="tabStock">स्टॉक</button><button class="tab" data-tab="accounts" id="tabAccounts">विक्री / खर्च</button><button class="tab" data-tab="marketing" id="tabMarketing">जाहिरात</button>
+</nav>
+<section class="panel active" id="ledger">
+ <div class="section-head"><div><h3 id="ledgerTitle">उधारी वही</h3><p id="ledgerDesc">ग्राहकांची बाकी नोंदवा आणि परतफेड अपडेट करा.</p></div></div>
+ <form id="ledgerForm" class="form-grid"><input id="customerName" required placeholder="ग्राहकाचे नाव"><input id="customerAmount" type="number" min="1" required placeholder="रक्कम (₹)"><button id="addCredit" class="primary">उधारी जोडा</button></form>
+ <div id="ledgerList" class="list empty">अजून नोंद नाही.</div>
+</section>
+<section class="panel" id="stock">
+ <div class="section-head"><div><h3 id="stockTitle">स्टॉक मॅनेजर</h3><p id="stockDesc">मालाचे नाव, उपलब्ध संख्या आणि कमी स्टॉकची सूचना.</p></div></div>
+ <form id="stockForm" class="form-grid"><input id="productName" required placeholder="मालाचे नाव"><input id="productQty" type="number" min="0" required placeholder="संख्या"><input id="productMin" type="number" min="0" required placeholder="किमान स्टॉक"><button id="addStock" class="primary">स्टॉक जोडा</button></form>
+ <div id="stockList" class="list empty">अजून माल नोंदवलेला नाही.</div>
+</section>
+<section class="panel" id="accounts">
+ <div class="section-head"><div><h3 id="accountsTitle">विक्री आणि खर्च</h3><p id="accountsDesc">रोजची विक्री व खर्च नोंदवा. नफा = विक्री − खर्च (अंदाज).</p></div></div>
+ <form id="accountForm" class="form-grid"><select id="entryType"><option value="sale">विक्री</option><option value="expense">खर्च</option></select><input id="entryAmount" type="number" min="1" required placeholder="रक्कम (₹)"><input id="entryNote" placeholder="तपशील (ऐच्छिक)"><button id="addEntry" class="primary">नोंद जोडा</button></form>
+ <div id="accountList" class="list empty">अजून नोंद नाही.</div>
+</section>
+<section class="panel" id="marketing">
+ <div class="section-head"><div><h3 id="marketingTitle">AI जाहिरात मदतनीस</h3><p id="marketingDesc">तुमच्या दुकानासाठी तयार जाहिरात मजकूर बनवा.</p></div></div>
+ <div class="form-grid"><input id="shopName" placeholder="दुकानाचे नाव"><input id="offer" placeholder="ऑफर / उत्पादन (उदा. 20% सूट)"><button id="makeAd" class="primary">जाहिरात तयार करा</button></div>
+ <textarea id="adOutput" rows="5" placeholder="तुमचा जाहिरात मजकूर येथे दिसेल..."></textarea><button id="copyAd" class="secondary">मजकूर कॉपी करा</button>
+ <p class="note" id="marketingNote">टीप: हा नियमाधारित नमुना आहे; सध्या बाह्य AI सेवा जोडलेली नाही.</p>
+</section>
+<footer><span>DukaanSaathi AI · Prototype v1</span><button id="exportData" class="text-btn">डेटा डाउनलोड करा (CSV)</button><button id="clearData" class="text-btn danger">सर्व डेटा पुसा</button></footer>
+<p class="disclaimer" id="disclaimer">* नफा हा विक्री − नोंदवलेला खर्च असा साधा अंदाज आहे; कर/खरेदी खर्च वेगळा असू शकतो. डेटा या डिव्हाइसच्या ब्राउझरमध्ये सेव्ह होतो. क्लाउड बॅकअप नाही.</p>
+</main><script src="app.js"></script>
+</body></html>
