@@ -30,9 +30,9 @@ async function startCloudSync() {
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error || !session) {
-    console.log("Cloud sync: Login required.");
-    return;
-  }
+  window.location.replace("./login.html");
+  return;
+}
 
   const user = session.user;
 
