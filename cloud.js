@@ -126,3 +126,8 @@ window.dsaLogout = async function () {
   await supabase.auth.signOut();
   window.location.replace("./login.html");
 };
+const logoutButton = document.createElement("button");
+logoutButton.textContent = "Logout";
+logoutButton.style.cssText = "position:fixed;top:15px;right:15px;z-index:9999;padding:10px 18px;background:#dc2626;color:white;border:0;border-radius:8px;cursor:pointer;font-weight:bold;";
+logoutButton.onclick = window.dsaLogout;
+document.body.appendChild(logoutButton);
