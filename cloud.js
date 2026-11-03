@@ -122,3 +122,7 @@ async function saveCloudData(userId, rowId) {
 }
 
 startCloudSync();
+window.dsaLogout = async function () {
+  await supabase.auth.signOut();
+  window.location.replace("./login.html");
+};
