@@ -1,6 +1,8 @@
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
 const SUPABASE_URL = "https://fdvwpvprsvozvliqotmt.supabase.co";
-const SUPABASE_KEY = "sb_publishable_Zg_NMelV2LvGDCAqM4rbvw_CmNpCK-u";
+const SUPABASE_KEY = "तुमची_PUBLISHABLE_KEY_इथे";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -26,73 +28,6 @@ function setLocalData(data) {
   localStorage.setItem(keys.entries, JSON.stringify(data.entries || []));
 }
 
-async function startCloudSync() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-
-  if (error || !session) {
-  window.location.replace("./login.html");
-  return;
-}
-
-  const user = session.user;
-
-  const { data: row, error: readError } = await supabase
-    .from("shop_records")
-    .select("id, notes")
-    .eq("user_id", user.id)
-    .eq("record_type", "app_backup")
-    .eq("title", backupTitle)
-    .maybeSingle();
-
-  if (readError) {
-    console.error("Cloud read failed:", readError.message);
-    return;
-  }
-
-  if (row && row.notes) {
-    let cloudData;
-
-    try {
-      cloudData = JSON.parse(row.notes);
-    } catch {
-      console.error("Cloud backup data is not valid JSON.");
-      return;
-    }
-
-    const oldData = JSON.stringify(getLocalData());
-    const newData = JSON.stringify({
-      ledger: cloudData.ledger || [],
-      stock: cloudData.stock || [],
-      entries: cloudData.entries || []
-    });
-
-    if (oldData !== newData) {
-      setLocalData(cloudData);
-      sessionStorage.setItem("dsa_cloud_loaded", "yes");
-      location.reload();
-      return;
-    }
-  } else {
-    await saveCloudData(user.id, row?.id);
-  }
-
-  const originalSetItem = localStorage.setItem.bind(localStorage);
-  let saveTimer;
-
-  localStorage.setItem = function (key, value) {
-    originalSetItem(key, value);
-
-    if (Object.values(keys).includes(key)) {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        await saveCloudData(user.id, row?.id);
-      }, 1000);
-    }
-  };
-
-  console.log("DukaanSaathi AI Cloud Sync connected.");
-}
-
 async function saveCloudData(userId, rowId) {
   const payload = {
     user_id: userId,
@@ -111,7 +46,13 @@ async function saveCloudData(userId, rowId) {
   } else {
     result = await supabase
       .from("shop_records")
-      .insert(payload);
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (!result.error) {
+      rowId = result.data.id;
+    }
   }
 
   if (result.error) {
@@ -119,15 +60,91 @@ async function saveCloudData(userId, rowId) {
   } else {
     console.log("Cloud backup saved.");
   }
+
+  return rowId;
+}
+
+async function startCloudSync() {
+  const { data, error } = await supabase.auth.getSession();
+  const session = data?.session;
+
+  if (error || !session) {
+    window.location.replace("./login.html");
+    return;
+  }
+
+  const user = session.user;
+
+  const { data: row, error: readError } = await supabase
+    .from("shop_records")
+    .select("id, notes")
+    .eq("user_id", user.id)
+    .eq("record_type", "app_backup")
+    .eq("title", backupTitle)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("Cloud read failed:", readError.message);
+    return;
+  }
+
+  let rowId = row?.id || null;
+
+  if (row && row.notes) {
+    try {
+      const cloudData = JSON.parse(row.notes);
+      const oldData = JSON.stringify(getLocalData());
+      const newData = JSON.stringify({
+        ledger: cloudData.ledger || [],
+        stock: cloudData.stock || [],
+        entries: cloudData.entries || []
+      });
+
+      if (oldData !== newData) {
+        setLocalData(cloudData);
+        location.reload();
+        return;
+      }
+    } catch (err) {
+      console.error("Cloud data error:", err);
+      return;
+    }
+  } else {
+    rowId = await saveCloudData(user.id, rowId);
+  }
+
+  let saveTimer;
+
+  const originalSetItem = localStorage.setItem.bind(localStorage);
+
+  localStorage.setItem = function (key, value) {
+    originalSetItem(key, value);
+
+    if (Object.values(keys).includes(key)) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        rowId = await saveCloudData(user.id, rowId);
+      }, 1000);
+    }
+  };
+
+  window.dsaLogout = async function () {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert("Logout failed. Please try again.");
+      return;
+    }
+    window.location.replace("./login.html");
+  };
+
+  const logoutButton = document.createElement("button");
+  logoutButton.textContent = "Logout";
+  logoutButton.style.cssText =
+    "position:fixed;top:15px;right:15px;z-index:99999;padding:10px 18px;background:#dc2626;color:white;border:0;border-radius:8px;cursor:pointer;font-weight:bold;";
+  logoutButton.onclick = window.dsaLogout;
+  document.body.appendChild(logoutButton);
+
+  console.log("DukaanSaathi AI Cloud Sync connected.");
 }
 
 startCloudSync();
-window.dsaLogout = async function () {
-  await supabase.auth.signOut();
-  window.location.replace("./login.html");
-};
-const logoutButton = document.createElement("button");
-logoutButton.textContent = "Logout";
-logoutButton.style.cssText = "position:fixed;top:15px;right:15px;z-index:9999;padding:10px 18px;background:#dc2626;color:white;border:0;border-radius:8px;cursor:pointer;font-weight:bold;";
-logoutButton.onclick = window.dsaLogout;
-document.body.appendChild(logoutButton);
