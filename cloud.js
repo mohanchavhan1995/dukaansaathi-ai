@@ -65,86 +65,111 @@ async function saveCloudData(userId, rowId) {
 }
 
 async function startCloudSync() {
-  const { data, error } = await supabase.auth.getSession();
-  const session = data?.session;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    const session = data?.session;
 
-  if (error || !session) {
-    window.location.replace("./login.html");
-    return;
-  }
+    if (error || !session) {
+      window.location.replace("./login.html");
+      return;
+    }
 
-  const user = session.user;
+    const user = session.user;
 
-  const { data: row, error: readError } = await supabase
-    .from("shop_records")
-    .select("id, notes")
-    .eq("user_id", user.id)
-    .eq("record_type", "app_backup")
-    .eq("title", backupTitle)
-    .maybeSingle();
+    const { data: row, error: readError } = await supabase
+      .from("shop_records")
+      .select("id, notes")
+      .eq("user_id", user.id)
+      .eq("record_type", "app_backup")
+      .eq("title", backupTitle)
+      .maybeSingle();
 
-  if (readError) {
-    console.error("Cloud read failed:", readError.message);
-    return;
-  }
+    if (readError) {
+      console.error("Cloud read failed:", readError.message);
+      return;
+    }
 
-  let rowId = row?.id || null;
+    let rowId = row?.id || null;
 
-  if (row && row.notes) {
-    try {
-      const cloudData = JSON.parse(row.notes);
-      const oldData = JSON.stringify(getLocalData());
-      const newData = JSON.stringify({
-        ledger: cloudData.ledger || [],
-        stock: cloudData.stock || [],
-        entries: cloudData.entries || []
-      });
+    if (row && row.notes) {
+      try {
+        const cloudData = JSON.parse(row.notes);
+        const localData = getLocalData();
 
-      if (oldData !== newData) {
-        setLocalData(cloudData);
-        location.reload();
+        const localIsEmpty =
+          localData.ledger.length === 0 &&
+          localData.stock.length === 0 &&
+          localData.entries.length === 0;
+
+        const cloudIsEmpty =
+          (!cloudData.ledger || cloudData.ledger.length === 0) &&
+          (!cloudData.stock || cloudData.stock.length === 0) &&
+          (!cloudData.entries || cloudData.entries.length === 0);
+
+        if (localIsEmpty && !cloudIsEmpty) {
+          setLocalData(cloudData);
+          window.location.reload();
+          return;
+        }
+
+        if (!localIsEmpty && cloudIsEmpty) {
+          rowId = await saveCloudData(user.id, rowId);
+        } else if (
+          JSON.stringify(localData) !==
+          JSON.stringify({
+            ledger: cloudData.ledger || [],
+            stock: cloudData.stock || [],
+            entries: cloudData.entries || []
+          })
+        ) {
+          setLocalData(cloudData);
+          window.location.reload();
+          return;
+        }
+      } catch (err) {
+        console.error("Cloud data error:", err);
         return;
       }
-    } catch (err) {
-      console.error("Cloud data error:", err);
-      return;
+    } else {
+      rowId = await saveCloudData(user.id, rowId);
     }
-  } else {
-    rowId = await saveCloudData(user.id, rowId);
+
+    let saveTimer;
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+
+    localStorage.setItem = function (key, value) {
+      originalSetItem(key, value);
+
+      if (Object.values(keys).includes(key)) {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          rowId = await saveCloudData(user.id, rowId);
+        }, 1000);
+      }
+    };
+
+    window.dsaLogout = async function () {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        alert("Logout failed. Please try again.");
+        return;
+      }
+
+      window.location.replace("./login.html");
+    };
+
+    const logoutButton = document.createElement("button");
+    logoutButton.textContent = "Logout";
+    logoutButton.style.cssText =
+      "position:fixed;top:15px;right:15px;z-index:99999;padding:10px 18px;background:#dc2626;color:white;border:0;border-radius:8px;cursor:pointer;font-weight:bold;";
+    logoutButton.onclick = window.dsaLogout;
+    document.body.appendChild(logoutButton);
+
+    console.log("DukaanSaathi AI Cloud Sync connected.");
+  } catch (err) {
+    console.error("Cloud sync error:", err);
   }
-
-  let saveTimer;
-
-  const originalSetItem = localStorage.setItem.bind(localStorage);
-
-  localStorage.setItem = function (key, value) {
-    originalSetItem(key, value);
-
-    if (Object.values(keys).includes(key)) {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        rowId = await saveCloudData(user.id, rowId);
-      }, 1000);
-    }
-  };
-
-  window.dsaLogout = async function () {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      alert("Logout failed. Please try again.");
-      return;
-    }
-    window.location.replace("./login.html");
-  };
-
-  const logoutButton = document.createElement("button");
-  logoutButton.textContent = "Logout";
-  logoutButton.style.cssText =
-    "position:fixed;top:15px;right:15px;z-index:99999;padding:10px 18px;background:#dc2626;color:white;border:0;border-radius:8px;cursor:pointer;font-weight:bold;";
-  logoutButton.onclick = window.dsaLogout;
-  document.body.appendChild(logoutButton);
-
-  console.log("DukaanSaathi AI Cloud Sync connected.");
 }
 
 startCloudSync();
