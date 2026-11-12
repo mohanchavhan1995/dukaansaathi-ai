@@ -55,6 +55,8 @@
       overflow-wrap: anywhere;
     }
     .note { font-size: 12px; color: #64748b; text-align: center; margin-top: 18px; }
+    .link-btn { background: transparent; color: #15803d; text-decoration: underline; padding: 8px; margin-top: 6px; font-size: 14px; }
+    #newPassword { display: none; }
   </style>
 </head>
 <body>
@@ -67,6 +69,9 @@
 
     <button id="signup">नवीन खाते तयार करा</button>
     <button id="login" class="secondary">Login करा</button>
+    <button id="forgotPassword" class="link-btn" type="button">Password विसरलात? Forgot Password</button>
+    <input id="newPassword" type="password" placeholder="नवीन Password (किमान 6 अक्षरे)" minlength="6">
+    <button id="saveNewPassword" style="display:none" type="button">नवीन Password सेव्ह करा</button>
 
     <p id="message"></p>
     <p class="note">खाते तयार केल्यावर Email Verification करावे लागू शकते.</p>
@@ -88,6 +93,51 @@
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const message = document.getElementById("message");
+    const newPasswordInput = document.getElementById("newPassword");
+    const saveNewPasswordButton = document.getElementById("saveNewPassword");
+
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        newPasswordInput.style.display = "block";
+        saveNewPasswordButton.style.display = "block";
+        message.textContent = "नवीन Password टाका.";
+      }
+    });
+
+    document.getElementById("forgotPassword").addEventListener("click", async () => {
+      const email = emailInput.value.trim();
+      if (!email) {
+        message.textContent = "आधी तुमचा Registered Email भरा.";
+        emailInput.focus();
+        return;
+      }
+      message.textContent = "Password Reset लिंक पाठवत आहोत...";
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      message.textContent = error
+        ? error.message
+        : "Password Reset लिंक तुमच्या Email वर पाठवली आहे. Email उघडून लिंकवर क्लिक करा.";
+    });
+
+    saveNewPasswordButton.addEventListener("click", async () => {
+      const newPassword = newPasswordInput.value;
+      if (newPassword.length < 6) {
+        message.textContent = "नवीन Password किमान 6 अक्षरांचा असावा.";
+        return;
+      }
+      message.textContent = "नवीन Password सेव्ह होत आहे...";
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        message.textContent = error.message;
+      } else {
+        message.textContent = "Password यशस्वीरीत्या बदलला! आता नवीन Password ने Login करा.";
+        newPasswordInput.value = "";
+        newPasswordInput.style.display = "none";
+        saveNewPasswordButton.style.display = "none";
+        await supabase.auth.signOut();
+      }
+    });
 
     document.getElementById("signup").addEventListener("click", async () => {
       const email = emailInput.value.trim();
